@@ -1,0 +1,6 @@
+{
+  "name": "Riva Product Meta Generator",
+  "description": "An AI-powered tool to generate meta titles and descriptions for Riva Fashion's product catalog. Upload a CSV file to get SEO-optimized content.",
+  "requestFramePermissions": [],
+  "prompt": ""
+}
