@@ -11,6 +11,7 @@ import Button from './components/Button';
 import { DownloadIcon, SparklesIcon, InfoIcon, ResumeIcon, StopIcon, ChipIcon } from './components/Icons';
 import ProgressBar from './components/ProgressBar';
 import AdvancedSettings from './components/AdvancedSettings';
+import ColumnBestPractices from './components/ColumnBestPractices';
 
 type SavedSession = {
   fileName: string;
@@ -137,10 +138,10 @@ const App: React.FC = () => {
           return;
         }
   
-        let resultsData: Product[];
+        let resultsData: any[];
   
         if (selectedFile.name.toLowerCase().endsWith('.csv')) {
-          const results = Papa.parse<Product>(fileContent as string, {
+          const results = Papa.parse<any>(fileContent as string, {
             header: true,
             skipEmptyLines: true,
           });
@@ -155,23 +156,52 @@ const App: React.FC = () => {
           const workbook = XLSX.read(fileContent, { type: 'array' });
           const sheetName = workbook.SheetNames[0];
           const worksheet = workbook.Sheets[sheetName];
-          const jsonData = XLSX.utils.sheet_to_json<any>(worksheet, { defval: "" });
-          
-          resultsData = jsonData.map(row => {
-            const newRow: { [key: string]: string | undefined } = {};
-            for (const key in row) {
-              if (Object.prototype.hasOwnProperty.call(row, key)) {
-                newRow[key] = String(row[key]);
-              }
-            }
-            return newRow as Product;
-          });
+          resultsData = XLSX.utils.sheet_to_json<any>(worksheet, { defval: "" });
         } else {
           setError("Unsupported file type. Please upload a CSV or XLSX file.");
           return;
         }
   
-        setOriginalData(resultsData);
+        const normalizeData = (data: any[]): Product[] => {
+            return data.map(row => {
+                const normalizedRow: { [key: string]: any } = {};
+                for (const originalKey in row) {
+                    if (Object.prototype.hasOwnProperty.call(row, originalKey)) {
+                        const lowerKey = originalKey.toLowerCase().trim();
+                        let newKey = originalKey;
+
+                        if (lowerKey === 'sku' || lowerKey === 'skus' || lowerKey === 'article number') {
+                            newKey = 'sku';
+                        } else if (lowerKey === 'name') {
+                            newKey = 'name';
+                        }
+                        
+                        normalizedRow[newKey] = String(row[originalKey] ?? "");
+                    }
+                }
+                return normalizedRow as Product;
+            });
+        };
+
+        const normalizedData = normalizeData(resultsData);
+
+        if (normalizedData.length > 0) {
+             const firstRow = normalizedData[0];
+             if (!firstRow.hasOwnProperty('sku') || !firstRow.hasOwnProperty('name')) {
+                 setError("Upload failed: Your file must contain 'sku' (or 'skus', 'Article Number') and 'name' columns.");
+                 return;
+             }
+             if (!firstRow.sku) {
+                 setError("Data validation failed: The first product is missing a value in the 'sku' column. SKUs are required for all products.");
+                 return;
+             }
+             if (!firstRow.name) {
+                  setError("Data validation failed: The first product is missing a value in the 'name' column. Product names are required.");
+                  return;
+             }
+        }
+  
+        setOriginalData(normalizedData);
   
       } catch (err) {
         const errorMessage = err instanceof Error ? err.message : 'An unknown error occurred.';
@@ -409,6 +439,7 @@ const App: React.FC = () => {
               <p className="mt-2 text-base text-gray-600 dark:text-gray-400">
                 Drag and drop or select a CSV or Excel file containing your product information.
               </p>
+              <ColumnBestPractices />
               <FileUpload onFileSelect={handleFileSelect} disabled={isLoading} />
             </div>
 
