@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 import type { Product, ProcessedProduct } from '../types';
 import { RegenerateIcon, SpinnerIcon, UploadCloudIcon, SparklesIcon, DownloadIcon } from './Icons';
@@ -67,7 +68,7 @@ const EditableCell: React.FC<EditableCellProps> = ({ initialValue, onSave, isTex
 
 interface ProductTableProps {
   data: (Product | ProcessedProduct)[];
-  onCellChange: (sku: string, field: 'Meta Title' | 'Meta Description', value: string) => void;
+  onCellChange: (sku: string, field: 'Meta Title EN' | 'Meta Description EN' | 'Meta Title AR' | 'Meta Description AR', value: string) => void;
   onRegenerateRow: (product: ProcessedProduct) => void;
   regeneratingSkus: Set<string>;
 }
@@ -105,12 +106,15 @@ const ProductTable: React.FC<ProductTableProps> = ({ data, onCellChange, onRegen
     );
   }
 
-  const isProcessed = 'Meta Title' in data[0];
+  const isProcessed = 'Meta Title EN' in data[0];
   const headers = Object.keys(data[0]);
   if(isProcessed) {
       headers.push('Actions');
   }
 
+  const isMetaField = (header: string): header is 'Meta Title EN' | 'Meta Description EN' | 'Meta Title AR' | 'Meta Description AR' => {
+    return ['Meta Title EN', 'Meta Description EN', 'Meta Title AR', 'Meta Description AR'].includes(header);
+  };
 
   return (
     <div className="w-full overflow-hidden rounded-xl border border-gray-200 dark:border-gray-700/60 shadow-lg shadow-gray-500/5 dark:shadow-black/10">
@@ -119,7 +123,7 @@ const ProductTable: React.FC<ProductTableProps> = ({ data, onCellChange, onRegen
                 <thead className="text-xs text-gray-700 uppercase bg-gray-100 dark:bg-gray-800 dark:text-gray-400 sticky top-0 z-10">
                 <tr>
                     {headers.map((header) => (
-                    <th key={header} scope="col" className={`px-6 py-3 whitespace-nowrap font-semibold ${(header === 'Meta Title' || header === 'Meta Description') ? 'text-brand-primary' : ''}`}>
+                    <th key={header} scope="col" className={`px-6 py-3 whitespace-nowrap font-semibold ${isMetaField(header) ? 'text-brand-primary' : ''}`}>
                         {header.replace(/_/g, ' ')}
                     </th>
                     ))}
@@ -153,11 +157,11 @@ const ProductTable: React.FC<ProductTableProps> = ({ data, onCellChange, onRegen
                         return (
                             <td key={`${product.sku}-${header}`} className="px-6 py-4 whitespace-normal align-top">
                                 <span className={`block max-w-xs md:max-w-md ${header === 'name' ? 'font-semibold text-gray-900 dark:text-white' : ''}`}>
-                                    {isProcessed && (header === 'Meta Title' || header === 'Meta Description') ? (
+                                    {isProcessed && isMetaField(header) ? (
                                         <EditableCell
                                             initialValue={cellValue}
                                             onSave={(newValue) => onCellChange(product.sku, header, newValue)}
-                                            isTextArea={header === 'Meta Description'}
+                                            isTextArea={header === 'Meta Description EN' || header === 'Meta Description AR'}
                                         />
                                     ) : (
                                         <span title={cellValue} dir="auto">{cellValue}</span>

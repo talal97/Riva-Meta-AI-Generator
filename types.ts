@@ -24,6 +24,8 @@ export interface Product {
 }
 
 export interface ProcessedProduct extends Product {
-  'Meta Title': string;
-  'Meta Description': string;
+  'Meta Title EN': string;
+  'Meta Description EN': string;
+  'Meta Title AR': string;
+  'Meta Description AR': string;
 }

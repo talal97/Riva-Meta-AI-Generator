@@ -1,3 +1,4 @@
+
 import { GoogleGenAI, Type } from "@google/genai";
 import type { Product, ProcessedProduct } from '../types';
 
@@ -16,16 +17,24 @@ const batchResponseSchema = {
                 type: Type.STRING,
                 description: "The SKU of the product, to match it back to the original data."
             },
-            metaTitle: { 
+            metaTitleEN: { 
                 type: Type.STRING,
-                description: "A concise and SEO-optimized title for the product, under 60 characters." 
+                description: "The English SEO-optimized title for the product, under 60 characters." 
             },
-            metaDescription: { 
+            metaDescriptionEN: { 
                 type: Type.STRING,
-                description: "A compelling and SEO-optimized meta description for the product, under 160 characters."
+                description: "The English SEO-optimized meta description for the product, under 160 characters."
+            },
+            metaTitleAR: { 
+                type: Type.STRING,
+                description: "The Arabic SEO-optimized title for the product, under 60 characters." 
+            },
+            metaDescriptionAR: { 
+                type: Type.STRING,
+                description: "The Arabic SEO-optimized meta description for the product, under 160 characters."
             },
         },
-        required: ["sku", "metaTitle", "metaDescription"]
+        required: ["sku", "metaTitleEN", "metaDescriptionEN", "metaTitleAR", "metaDescriptionAR"]
     }
 };
 
@@ -36,74 +45,100 @@ const singleResponseSchema = {
             type: Type.STRING,
             description: "The SKU of the product, to match it back to the original data."
         },
-        metaTitle: {
+        metaTitleEN: {
             type: Type.STRING,
-            description: "A concise and SEO-optimized title for the product, under 60 characters."
+            description: "The English SEO-optimized title for the product, under 60 characters."
         },
-        metaDescription: {
+        metaDescriptionEN: {
             type: Type.STRING,
-            description: "A compelling and SEO-optimized meta description for the product, under 160 characters."
+            description: "The English SEO-optimized meta description for the product, under 160 characters."
+        },
+        metaTitleAR: {
+            type: Type.STRING,
+            description: "The Arabic SEO-optimized title for the product, under 60 characters."
+        },
+        metaDescriptionAR: {
+            type: Type.STRING,
+            description: "The Arabic SEO-optimized meta description for the product, under 160 characters."
         },
     },
-    required: ["sku", "metaTitle", "metaDescription"]
+    required: ["sku", "metaTitleEN", "metaDescriptionEN", "metaTitleAR", "metaDescriptionAR"]
 }
 
 export const DEFAULT_AI_INSTRUCTIONS = `You are a world-class e-commerce SEO specialist and copywriter for Riva Fashion, a popular brand known for its stylish women's clothing and home goods.
 
-Your mission is to craft compelling, SEO-optimized meta titles and descriptions. You will be given product data that includes a 'sku'.
+Your mission is to craft compelling, SEO-optimized meta titles and descriptions in BOTH English and Arabic. You will be given product data that may contain information in both languages.
 
 **--- CRITICAL RULES (MUST FOLLOW) ---**
 
-1.  **DO NOT INCLUDE THE SKU:** The product 'sku' is for identification ONLY. You MUST NOT, under any circumstances, include the 'sku' or any long product codes in the final 'metaTitle' or 'metaDescription'.
+1.  **DUAL LANGUAGE GENERATION:** For each product, you MUST generate four fields: \`metaTitleEN\`, \`metaDescriptionEN\`, \`metaTitleAR\`, and \`metaDescriptionAR\`.
 
-2.  **LANGUAGE DETECTION & PURITY:**
-    - If a product's 'name' contains Arabic characters, you MUST generate the 'metaTitle' and 'metaDescription' in ARABIC.
-    - If the language is ARABIC, the output text MUST contain ONLY Arabic characters, brand names in Arabic, numbers, and standard punctuation. Absolutely NO English letters are permitted in the Arabic content.
-    - Otherwise, generate the 'metaTitle' and 'metaDescription' in ENGLISH.
+2.  **SOURCE DATA MAPPING:**
+    - Use English product data (e.g., columns like 'name', 'description', 'color') to generate the English meta content (\`metaTitleEN\`, \`metaDescriptionEN\`).
+    - Use Arabic product data (e.g., columns like 'name_ar', 'description_ar') to generate the Arabic meta content (\`metaTitleAR\`, \`metaDescriptionAR\`).
 
-3.  **ARABIC BRAND NAME TRANSLATION:** When generating content in Arabic, you MUST translate the brand names as follows:
+3.  **LANGUAGE PURITY:**
+    - English content must be in English.
+    - Arabic content MUST contain ONLY Arabic characters, brand names in Arabic, numbers, and standard punctuation. Absolutely NO English letters are permitted in the Arabic content.
+
+4.  **ARABIC BRAND NAME TRANSLATION:** When generating content in Arabic, you MUST translate the brand names as follows:
     - "Riva Fashion" becomes "ريفا فاشن"
     - "Riva Home" becomes "ريفا هوم"
     - Use these exact translations. Do not use the English names in Arabic text.
 
-4.  **ITERATE AND RETURN ALL (CRITICAL):** This is your most important instruction. You are receiving a list of products. You MUST iterate through this list one-by-one and generate a corresponding JSON object for EVERY SINGLE product without exception. The final output array MUST have the exact same number of items as the input \`Product List\`. If a product has insufficient data, you must still generate its JSON object with its correct "sku" and use the specific string "Error: Could not generate due to insufficient data" for both the "metaTitle" and "metaDescription" fields. DO NOT SKIP ANY PRODUCT. Omitting even one product from your response will cause a critical system failure.
+5.  **INSUFFICIENT DATA:**
+    - If there is not enough data to generate content for a specific language (e.g., no Arabic source text), you MUST still return the fields for that language. For those fields, use the specific string "Error: Insufficient data for generation". Do not attempt to translate if source data for a language is missing.
 
-**--- CONTENT GUIDELINES ---**
+6.  **DO NOT INCLUDE THE SKU:** The product 'sku' is for identification ONLY. You MUST NOT, under any circumstances, include the 'sku' or any long product codes in the final meta content.
+
+7.  **ITERATE AND RETURN ALL (CRITICAL):** You are receiving a list of products. You MUST iterate through this list one-by-one and generate a corresponding JSON object for EVERY SINGLE product without exception. The final output array MUST have the exact same number of items as the input \`Product List\`. Omitting even one product from your response will cause a critical system failure.
+
+**--- CONTENT GUIDELINES (per language) ---**
 
 **Meta Title Guidelines:**
 - Craft a complete, coherent, and appealing title.
-- Strictly adhere to a 60-character limit. Do not truncate words or phrases unnaturally to meet this limit; prioritize a complete thought.
-- Incorporate the primary product name and key features.
+- Strictly adhere to a 60-character limit.
 - For English titles, end with "| Riva Fashion" (or "| Riva Home").
-- For Arabic titles, end with "| ريفا فاشن" (or "| ريفا هوم" if it is a home product).
+- For Arabic titles, end with "| ريفا فاشن" (or "| ريفا هوم").
 
 **Meta Description Guidelines:**
-- Write a persuasive and complete description that sparks interest.
-- Strictly adhere to a 160-character limit. Avoid abrupt endings.
-- Showcase key features, style, and benefits by weaving in details from the product data.
-- Transform product details into an engaging narrative. Avoid simply listing attributes.
+- Write a persuasive and complete description.
+- Strictly adhere to a 160-character limit.
+- Weave in product details to create an engaging narrative.
 - Naturally incorporate the correct brand name: "Riva Fashion" for English, and "ريفا فاشن" or "ريفا هوم" for Arabic.
 
-**--- QUALITY CHECKLIST (Before generating the final JSON) ---**
+**--- QUALITY CHECKLIST ---**
 - Have I followed all CRITICAL RULES?
 - Is my output array the exact same length as the input list?
-- Is the language (English/Arabic) correct for the product?
-- If Arabic, is the text 100% free of English letters?
-- Is the SKU excluded from the title and description?
-- Are the title and description complete, coherent, and not cut off?
-- Is the correct brand name (and its correct translation) included?
+- Have I generated all four meta fields for every product?
+- Is the Arabic text 100% free of English letters?
+- Is the SKU excluded from all meta content?
 
 **Technical Requirements:**
 - Your entire response MUST be valid JSON that strictly adheres to the provided schema.
-- The "sku" in your JSON output must be an exact match to the input "sku" to ensure correct data mapping. This is the ONLY place the SKU should appear.`;
+- The "sku" in your JSON output must be an exact match to the input "sku".`;
 
 
-export const generateMetaContentForBatch = async (products: Product[], instructions: string): Promise<{ results: { sku: string; metaTitle: string; metaDescription: string; }[], totalTokens: number }> => {
+export const generateMetaContentForBatch = async (
+    products: Product[], 
+    instructions: string
+): Promise<{ 
+    results: { 
+        sku: string; 
+        metaTitleEN: string; 
+        metaDescriptionEN: string; 
+        metaTitleAR: string; 
+        metaDescriptionAR: string; 
+    }[], 
+    totalTokens: number 
+}> => {
     
     const productDetailsForPrompt = products.map(p => {
         const { 
-            'Meta Title': metaTitle, 
-            'Meta Description': metaDescription, 
+            'Meta Title EN': _1, 
+            'Meta Description EN': _2, 
+            'Meta Title AR': _3,
+            'Meta Description AR': _4,
             ...rest 
         } = p as ProcessedProduct;
         return rest;
@@ -112,7 +147,7 @@ export const generateMetaContentForBatch = async (products: Product[], instructi
     const prompt = `
         ${instructions}
 
-        Your task is to generate a meta title and a meta description for EACH product in the following JSON list, using the provided product attributes.
+        Your task is to generate meta titles and descriptions in English and Arabic for EACH product in the following JSON list.
 
         Product List:
         ${JSON.stringify(productDetailsForPrompt, null, 2)}
@@ -137,26 +172,22 @@ export const generateMetaContentForBatch = async (products: Product[], instructi
             throw new Error("API response was not a JSON array as expected.");
         }
         
-        // Create a map for efficient lookup of returned results.
+        type ApiResult = { sku: string; metaTitleEN: string; metaDescriptionEN: string; metaTitleAR: string; metaDescriptionAR: string; };
         const returnedResultsMap = new Map(
-            parsedJson.map((item: { sku: string; metaTitle: string; metaDescription: string; }) => [item.sku, item])
+            parsedJson.map((item: ApiResult) => [item.sku, item])
         );
         
-        // Ensure every product from the original chunk has a corresponding result.
         const finalResults = products.map(originalProduct => {
             const result = returnedResultsMap.get(originalProduct.sku);
             if (result) {
-                return {
-                    sku: result.sku,
-                    metaTitle: result.metaTitle,
-                    metaDescription: result.metaDescription,
-                };
+                return result;
             }
-            // If the model omitted a SKU, create a fallback entry. This makes the system more resilient.
             return {
                 sku: originalProduct.sku,
-                metaTitle: 'Error: No AI Response',
-                metaDescription: 'The AI did not provide a response for this item in the batch.',
+                metaTitleEN: 'Error: No AI Response',
+                metaDescriptionEN: 'The AI did not provide a response for this item.',
+                metaTitleAR: 'Error: No AI Response',
+                metaDescriptionAR: 'The AI did not provide a response for this item.',
             };
         });
 
@@ -202,15 +233,29 @@ export const generateMetaContentForBatch = async (products: Product[], instructi
     }
 };
 
-export const generateMetaContentForSingleProduct = async (product: Product, instructions: string): Promise<{ result: { sku: string; metaTitle: string; metaDescription: string; }, totalTokens: number }> => {
+export const generateMetaContentForSingleProduct = async (
+    product: Product, 
+    instructions: string
+): Promise<{ 
+    result: { 
+        sku: string; 
+        metaTitleEN: string; 
+        metaDescriptionEN: string; 
+        metaTitleAR: string; 
+        metaDescriptionAR: string; 
+    }, 
+    totalTokens: number 
+}> => {
     const {
-        'Meta Title': metaTitle, 
-        'Meta Description': metaDescription, 
+        'Meta Title EN': _1, 
+        'Meta Description EN': _2, 
+        'Meta Title AR': _3,
+        'Meta Description AR': _4,
         ...productDetailsForPrompt
     } = product as ProcessedProduct;
 
     const prompt = `
-        Your task is to generate a new meta title and a new meta description for the following product.
+        Your task is to generate a new meta title and a new meta description in both English and Arabic for the following product.
         
         ${instructions}
 

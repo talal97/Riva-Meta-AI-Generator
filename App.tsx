@@ -167,13 +167,19 @@ const App: React.FC = () => {
                 const normalizedRow: { [key: string]: any } = {};
                 for (const originalKey in row) {
                     if (Object.prototype.hasOwnProperty.call(row, originalKey)) {
-                        const lowerKey = originalKey.toLowerCase().trim();
+                        const lowerKey = originalKey.toLowerCase().trim().replace(/ /g, '_');
                         let newKey = originalKey;
 
-                        if (lowerKey === 'sku' || lowerKey === 'skus' || lowerKey === 'article number') {
+                        if (lowerKey === 'sku' || lowerKey === 'skus' || lowerKey === 'article_number') {
                             newKey = 'sku';
-                        } else if (lowerKey === 'name') {
-                            newKey = 'name';
+                        } else if (lowerKey === 'name' || lowerKey === 'name_en' || lowerKey === 'english_name' || lowerKey === 'product_name_in_english') {
+                            newKey = 'name'; // Canonical English name
+                        } else if (lowerKey === 'name_ar' || lowerKey === 'arabic_name' || lowerKey === 'product_name_in_arabic') {
+                            newKey = 'name_ar';
+                        } else if (lowerKey === 'description' || lowerKey === 'description_en' || lowerKey === 'english_description' || lowerKey === 'product_description_in_english') {
+                            newKey = 'description'; // Canonical English description
+                        } else if (lowerKey === 'description_ar' || lowerKey === 'arabic_description' || lowerKey === 'product_description_in_arabic') {
+                            newKey = 'description_ar';
                         }
                         
                         normalizedRow[newKey] = String(row[originalKey] ?? "");
@@ -187,17 +193,13 @@ const App: React.FC = () => {
 
         if (normalizedData.length > 0) {
              const firstRow = normalizedData[0];
-             if (!firstRow.hasOwnProperty('sku') || !firstRow.hasOwnProperty('name')) {
-                 setError("Upload failed: Your file must contain 'sku' (or 'skus', 'Article Number') and 'name' columns.");
+             if (!firstRow.hasOwnProperty('sku') || !firstRow.sku) {
+                 setError("Upload failed: Your file must contain a 'sku' column (or 'skus', 'Article Number') with a value for each product.");
                  return;
              }
-             if (!firstRow.sku) {
-                 setError("Data validation failed: The first product is missing a value in the 'sku' column. SKUs are required for all products.");
+             if (!firstRow.name && !firstRow.name_ar) {
+                 setError("Upload failed: Your file must contain a product name column (e.g., 'name', 'name_ar', 'product name in english').");
                  return;
-             }
-             if (!firstRow.name) {
-                  setError("Data validation failed: The first product is missing a value in the 'name' column. Product names are required.");
-                  return;
              }
         }
   
@@ -236,7 +238,7 @@ const App: React.FC = () => {
           return;
       }
       
-      const BATCH_SIZE = 15;
+      const BATCH_SIZE = 10; // Reduced batch size for larger payload
       const productChunks: Product[][] = [];
       for (let i = 0; i < productsToProcess.length; i += BATCH_SIZE) {
           productChunks.push(productsToProcess.slice(i, i + BATCH_SIZE));
@@ -266,8 +268,10 @@ const App: React.FC = () => {
               const meta = metasMap.get(product.sku);
               return {
                   ...product,
-                  'Meta Title': meta?.metaTitle || 'Error: Not Generated',
-                  'Meta Description': meta?.metaDescription || 'Error: Not Generated',
+                  'Meta Title EN': meta?.metaTitleEN || 'Error: Not Generated',
+                  'Meta Description EN': meta?.metaDescriptionEN || 'Error: Not Generated',
+                  'Meta Title AR': meta?.metaTitleAR || 'Error: Not Generated',
+                  'Meta Description AR': meta?.metaDescriptionAR || 'Error: Not Generated',
               };
           });
           currentRunResults.push(...processedChunk);
@@ -352,7 +356,7 @@ const App: React.FC = () => {
     }
   };
   
-  const handleCellChange = (sku: string, field: 'Meta Title' | 'Meta Description', value: string) => {
+  const handleCellChange = (sku: string, field: 'Meta Title EN' | 'Meta Description EN' | 'Meta Title AR' | 'Meta Description AR', value: string) => {
       setProcessedData(currentData =>
         currentData.map(row =>
             row.sku === sku ? { ...row, [field]: value } : row
@@ -366,10 +370,16 @@ const App: React.FC = () => {
     setError(null);
 
     try {
-        const { result, totalTokens } = await generateMetaContentForSingleProduct(productToRegenerate, customInstructions);
+        const { result } = await generateMetaContentForSingleProduct(productToRegenerate, customInstructions);
         setProcessedData(currentData =>
             currentData.map(row => 
-                row.sku === sku ? { ...row, 'Meta Title': result.metaTitle, 'Meta Description': result.metaDescription } : row
+                row.sku === sku ? { 
+                    ...row, 
+                    'Meta Title EN': result.metaTitleEN, 
+                    'Meta Description EN': result.metaDescriptionEN,
+                    'Meta Title AR': result.metaTitleAR,
+                    'Meta Description AR': result.metaDescriptionAR,
+                } : row
             )
         );
     } catch (err) {
@@ -378,11 +388,16 @@ const App: React.FC = () => {
         
         if (errorMessage.includes("[QUOTA_EXCEEDED]")) {
             setError(`Daily token limit reached. Regeneration failed for SKU ${sku}. Please try again later when your quota resets (midnight UTC).`);
-            // When quota is hit on regenerate, we don't change the cell content. We just show the banner.
         } else {
              setProcessedData(currentData =>
                 currentData.map(row =>
-                    row.sku === sku ? { ...row, 'Meta Title': 'Error: Regeneration failed', 'Meta Description': 'Please try again or edit manually.' } : row
+                    row.sku === sku ? { 
+                        ...row, 
+                        'Meta Title EN': 'Error: Regeneration failed', 
+                        'Meta Description EN': 'Please try again or edit manually.',
+                        'Meta Title AR': 'Error: Regeneration failed',
+                        'Meta Description AR': 'Please try again or edit manually.',
+                     } : row
                 )
             );
         }

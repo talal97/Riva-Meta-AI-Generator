@@ -26,26 +26,38 @@ const ColumnBestPractices: React.FC = () => {
             
             <div
                 id="column-best-practices-panel"
-                className={`overflow-hidden transition-all duration-300 ease-in-out ${isOpen ? 'max-h-[40rem]' : 'max-h-0'}`}
+                className={`overflow-hidden transition-all duration-300 ease-in-out ${isOpen ? 'max-h-[60rem]' : 'max-h-0'}`}
             >
                 <div className="px-5 pb-4 border-t border-gray-200/80 dark:border-gray-700/60">
                     <div className="text-sm text-gray-700 dark:text-gray-300 space-y-4 pt-4">
-                        <p>For the best results, structure your file with the following columns:</p>
+                        <p>For the best results, structure your file with the following columns. The more relevant data you provide, the better the AI's output will be.</p>
                         
                         <div>
                             <h4 className="font-semibold text-gray-800 dark:text-gray-200">Required Columns</h4>
                             <p className="mt-1 text-gray-600 dark:text-gray-400">Your file <strong>must</strong> contain these columns for the tool to work correctly.</p>
                             <ul className="list-disc list-inside mt-2 space-y-1.5 pl-2 text-gray-600 dark:text-gray-400">
                                 <li><Code>sku</Code> (or <Code>skus</Code>, <Code>Article Number</Code>): The unique product identifier.</li>
-                                <li><Code>name</Code>: The primary name of the product.</li>
+                                <li><Code>name</Code> (or <Code>name_en</Code>, <Code>Product Name in English</Code>): The English name of the product.</li>
                             </ul>
+                        </div>
+                        
+                        <div>
+                            <h4 className="font-semibold text-gray-800 dark:text-gray-200 mt-4">Bilingual Generation (English & Arabic)</h4>
+                            <p className="mt-1 text-gray-600 dark:text-gray-400">To generate meta content in both languages, simply include columns with your Arabic product data. The tool will automatically detect them.</p>
+                             <ul className="list-disc list-inside mt-2 space-y-1.5 pl-2 text-gray-600 dark:text-gray-400">
+                                <li><Code>name_ar</Code> (or <Code>arabic_name</Code>): The Arabic name of the product.</li>
+                                <li><Code>description_ar</Code> (or <Code>arabic_description</Code>): A detailed description in Arabic.</li>
+                            </ul>
+                            <p className="mt-2 text-xs text-gray-500 dark:text-gray-400 pl-2">
+                                If Arabic columns are not provided, the AI will only generate English content and show an error for the Arabic fields.
+                            </p>
                         </div>
 
                         <div>
                             <h4 className="font-semibold text-gray-800 dark:text-gray-200 mt-4">Recommended Columns</h4>
-                            <p className="mt-1 text-gray-600 dark:text-gray-400">Including these columns will provide more context to the AI, resulting in higher-quality, more accurate meta content. <strong>The column names can be whatever you use internally.</strong> The AI is smart enough to understand them.</p>
+                            <p className="mt-1 text-gray-600 dark:text-gray-400">Including these columns will provide more context to the AI, resulting in higher-quality meta content. <strong>Column names can vary</strong>; the AI is smart enough to understand common variations.</p>
                             <ul className="list-disc list-inside mt-2 space-y-1.5 pl-2 text-gray-600 dark:text-gray-400">
-                                <li><Code>description</Code></li>
+                                <li><Code>description</Code> (or <Code>description_en</Code>)</li>
                                 <li><Code>color</Code> (or <Code>Main_Color</Code>)</li>
                                 <li><Code>material</Code></li>
                                 <li><Code>Season</Code> (or <Code>Collection</Code>)</li>
@@ -53,9 +65,6 @@ const ColumnBestPractices: React.FC = () => {
                                 <li><Code>Gender</Code> (e.g., 'Women', 'Girls')</li>
                             </ul>
                         </div>
-                        <p className="!mt-5 text-center text-xs text-gray-500 dark:text-gray-400">
-                            <strong>General Tip:</strong> The more descriptive your column names and data are, the better the AI's output will be.
-                        </p>
                     </div>
                 </div>
             </div>
