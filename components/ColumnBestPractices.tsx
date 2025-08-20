@@ -46,7 +46,6 @@ const ColumnBestPractices: React.FC = () => {
                             <p className="mt-1 text-gray-600 dark:text-gray-400">Including these columns will provide more context to the AI, resulting in higher-quality, more accurate meta content. <strong>The column names can be whatever you use internally.</strong> The AI is smart enough to understand them.</p>
                             <ul className="list-disc list-inside mt-2 space-y-1.5 pl-2 text-gray-600 dark:text-gray-400">
                                 <li><Code>description</Code></li>
-                                <li><Code>price</Code> (e.g., <Code>price (KWD)</Code>)</li>
                                 <li><Code>color</Code> (or <Code>Main_Color</Code>)</li>
                                 <li><Code>material</Code></li>
                                 <li><Code>Season</Code> (or <Code>Collection</Code>)</li>
