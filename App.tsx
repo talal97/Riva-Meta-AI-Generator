@@ -355,6 +355,31 @@ const App: React.FC = () => {
       document.body.removeChild(link);
     }
   };
+
+  const handleDownloadExcel = () => {
+    if (processedData.length === 0) {
+      setError("No processed data to download.");
+      return;
+    }
+
+    const worksheet = XLSX.utils.json_to_sheet(processedData);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Processed Products");
+
+    const excelBuffer = XLSX.write(workbook, { bookType: 'xlsx', type: 'array' });
+    const blob = new Blob([excelBuffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;charset=UTF-8' });
+
+    const link = document.createElement('a');
+    if (link.download !== undefined) {
+      const url = URL.createObjectURL(blob);
+      link.setAttribute('href', url);
+      link.setAttribute('download', `processed_${file?.name.split('.')[0] || 'products'}.xlsx`);
+      link.style.visibility = 'hidden';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    }
+  };
   
   const handleCellChange = (sku: string, field: 'Meta Title EN' | 'Meta Description EN' | 'Meta Title AR' | 'Meta Description AR', value: string) => {
       setProcessedData(currentData =>
@@ -549,15 +574,18 @@ const App: React.FC = () => {
                   </p>
                 </div>
                 
-                <div className="flex justify-center md:justify-end gap-4">
+                <div className="flex justify-center md:justify-end items-center gap-4 flex-wrap">
                      {isResumable && !isLoading && (
                         <Button onClick={handleResume}>
                             <ResumeIcon className="w-5 h-5 mr-2" />
                             Resume Generation
                         </Button>
                     )}
-                    <Button onClick={handleDownload} disabled={isLoading}>
+                    <Button onClick={handleDownloadExcel} disabled={isLoading}>
                         <DownloadIcon className="w-5 h-5 mr-2" />
+                        Download Excel
+                    </Button>
+                    <Button onClick={handleDownload} variant="secondary" disabled={isLoading}>
                         Download CSV
                     </Button>
                 </div>
